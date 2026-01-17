@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Claimly Dice Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#0b1b2e,#020409);
+  font-family:Inter,Arial,sans-serif;
+  color:#eafcff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.app{
+  width:390px;
+  background:rgba(8,20,40,.95);
+  border-radius:26px;
+  box-shadow:0 0 40px rgba(0,246,255,.25);
+  overflow:hidden;
+}
+.header{
+  padding:16px 18px;
+  background:linear-gradient(135deg,#02182f,#042b55);
+}
+.header h1{margin:0;font-size:17px}
+.balance{font-size:13px;color:#9fdfff;margin-top:4px}
+.balance span{color:#00ff88;font-weight:700}
+
+.tabs{
+  display:flex;
+  background:#021829;
+}
+.tabs button{
+  flex:1;
+  padding:10px;
+  border:none;
+  background:none;
+  color:#9fdfff;
+  font-weight:700;
+  cursor:pointer;
+}
+.tabs .active{
+  background:#0b3355;
+  color:#00ff88;
+}
+
+.game{padding:20px;text-align:center}
+.dice{font-size:42px;margin:16px 0}
+button.main{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  font-weight:700;
+  background:linear-gradient(135deg,#00f6ff,#00ff88);
+  color:#001;
+  cursor:pointer;
+}
+.result{min-height:22px;margin-top:10px}
+.win{color:gold}
+.lose{color:#ff4d4d}
+.vip{margin-top:12px;font-size:12px;color:gold}
+.slider{margin:14px 0}
+.footer{font-size:11px;color:#7fbccc;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>🎲 Claimly Dice</h1>
+    <div class="balance">Credits: <span id="bal">100</span></div>
+  </div>
+
+  <div class="tabs">
+    <button id="tabStreet" class="active">Street Dice</button>
+    <button id="tabCrypto">Crypto Dice</button>
+  </div>
+
+  <div class="game">
+    <div id="modeLabel">Street Mode</div>
+
+    <div id="cryptoControls" style="display:none">
+      <div class="slider">
+        <input id="chance" type="range" min="5" max="95" value="49">
+        <div>Win Chance: <span id="cv">49%</span></div>
+      </div>
+    </div>
+
+    <div class="dice" id="dice">🎲</div>
+    <button class="main" id="rollBtn">ROLL</button>
+
+    <div class="result" id="res"></div>
+    <div class="vip" id="vipTag"></div>
+    <div class="footer">Credits only • Rewards platform</div>
+  </div>
+</div>
+
+<script>
+(() => {
+
+  /* ================= CORE ENGINE ================= */
+
+  class DiceEngine {
+    constructor(){
+      this.balance = 100;
+      this.mode = 'street';
+      this.vip = false;
+    }
+
+    rollStreet(){
+      const roll = Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1;
+      if([7,11].includes(roll)) return {win:true,payout:this.vip?15:10};
+      if([2,3,12].includes(roll)) return {win:false};
+      return {win:Math.random()>.45,payout:this.vip?12:8};
+    }
+
+    rollCrypto(chance){
+      const roll = Math.floor(Math.random()*100);
+      const win = roll < chance + (this.vip?3:0);
+      return {roll, win, payout: win ? Math.max(2,Math.floor(95/chance*2)) : 0};
+    }
+  }
+
+  /* ================= APP ================= */
+
+  const game = new DiceEngine();
+
+  const balEl = document.getElementById('bal');
+  const res = document.getElementById('res');
+  const dice = document.getElementById('dice');
+  const chance = document.getElementById('chance');
+  const cv = document.getElementById('cv');
+  const cryptoControls = document.getElementById('cryptoControls');
+  const vipTag = document.getElementById('vipTag');
+
+  function updateUI(){
+    balEl.textContent = game.balance;
+    cv.textContent = chance.value + '%';
+    vipTag.textContent = game.vip ? '👑 VIP BOOST ACTIVE' : '';
+  }
+
+  document.getElementById('tabStreet').onclick = () => {
+    game.mode = 'street';
+    cryptoControls.style.display='none';
+    document.getElementById('modeLabel').textContent='Street Mode';
+    setActive('tabStreet');
+  };
+
+  document.getElementById('tabCrypto').onclick = () => {
+    game.mode = 'crypto';
+    cryptoControls.style.display='block';
+    document.getElementById('modeLabel').textContent='Crypto Mode';
+    setActive('tabCrypto');
+  };
+
+  function setActive(id){
+    document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  document.getElementById('rollBtn').onclick = () => {
+    if(game.balance < 2){
+      res.innerHTML='<span class=lose>Not enough credits</span>';
+      return;
+    }
+    game.balance -= 2;
+
+    if(game.mode === 'street'){
+      const r = game.rollStreet();
+      dice.textContent = '🎲';
+      if(r.win){
+        game.balance += r.payout;
+        res.innerHTML='<span class=win>WIN +'+r.payout+'</span>';
+      } else res.innerHTML='<span class=lose>NO WIN</span>';
+    } else {
+      const r = game.rollCrypto(+chance.value);
+      dice.textContent = r.roll;
+      if(r.win){
+        game.balance += r.payout;
+        res.innerHTML='<span class=win>WIN +'+r.payout+'</span>';
+      } else res.innerHTML='<span class=lose>LOSE</span>';
+    }
+    updateUI();
+  };
+
+  chance.oninput = updateUI;
+
+  updateUI();
+
+  /* ================= VIP & CWALLET STUB ================= */
+
+  window.requestCWalletPayment = function(){
+    console.log('CWallet payment request sent');
+    game.vip = true;
+    updateUI();
+    alert('VIP Activated (demo)');
+  };
+
+})();
+</script>
+</body>
+</html>
