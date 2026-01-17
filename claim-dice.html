@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Claimly Dice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#0b1b2e,#020409);
+  font-family:Inter,Arial,sans-serif;
+  color:#eafcff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.app{
+  width:390px;
+  background:rgba(8,20,40,.95);
+  border-radius:26px;
+  box-shadow:0 0 40px rgba(0,246,255,.25);
+  overflow:hidden;
+}
+.header{
+  padding:16px 18px;
+  background:linear-gradient(135deg,#02182f,#042b55);
+}
+.header h1{margin:0;font-size:18px}
+.balance{font-size:13px;color:#9fdfff}
+.balance span{color:#00ff88;font-weight:700}
+
+.game{
+  padding:22px;
+  text-align:center;
+}
+.dice-area{
+  display:flex;
+  justify-content:center;
+  gap:22px;
+  margin:28px 0;
+}
+.die{
+  width:80px;
+  height:80px;
+  border-radius:18px;
+  background:linear-gradient(145deg,#0b3355,#021829);
+  box-shadow:inset 0 0 18px rgba(0,246,255,.35);
+  font-size:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.rolling{
+  animation:roll .25s linear infinite;
+}
+@keyframes roll{
+  0%{transform:rotate(0deg)}
+  50%{transform:rotate(180deg)}
+  100%{transform:rotate(360deg)}
+}
+
+button{
+  width:100%;
+  padding:14px;
+  font-size:16px;
+  font-weight:700;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg,#00f6ff,#00ff88);
+  color:#001;
+  cursor:pointer;
+}
+button:disabled{opacity:.5}
+
+.result{
+  min-height:22px;
+  margin-top:10px;
+}
+.win{color:gold;text-shadow:0 0 10px gold}
+.lose{color:#ff4d4d}
+
+.footer{
+  margin-top:12px;
+  font-size:11px;
+  color:#7fbccc;
+}
+.back{
+  margin-top:8px;
+  font-size:12px;
+  color:#9fdfff;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>🎲 Claimly Dice</h1>
+    <div class="balance">Credits: <span id="balance">100</span></div>
+  </div>
+
+  <div class="game">
+    <div class="dice-area">
+      <div class="die" id="die1">🎲</div>
+      <div class="die" id="die2">🎲</div>
+    </div>
+
+    <button id="rollBtn">ROLL DICE</button>
+
+    <div class="result" id="result"></div>
+
+    <div class="back" onclick="location.href='lobby.html'">
+      ← Back to Lobby
+    </div>
+
+    <div class="footer">
+      Dice decide outcomes • Credits only
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+
+  let balance = 100;
+  let rolling = false;
+
+  const balanceEl = document.getElementById("balance");
+  const resultEl = document.getElementById("result");
+  const rollBtn = document.getElementById("rollBtn");
+  const die1 = document.getElementById("die1");
+  const die2 = document.getElementById("die2");
+
+  const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
+
+  function rngDie(){
+    return Math.floor(Math.random()*6) + 1;
+  }
+
+  function updateBalance(){
+    balanceEl.textContent = balance;
+  }
+
+  rollBtn.onclick = () => {
+    if(rolling) return;
+    if(balance < 2){
+      resultEl.innerHTML = "<span class='lose'>Not enough credits</span>";
+      return;
+    }
+
+    balance -= 2;
+    updateBalance();
+
+    rolling = true;
+    rollBtn.disabled = true;
+    resultEl.textContent = "Rolling…";
+
+    die1.classList.add("rolling");
+    die2.classList.add("rolling");
+
+    setTimeout(() => {
+      const d1 = rngDie();
+      const d2 = rngDie();
+
+      die1.textContent = faces[d1 - 1];
+      die2.textContent = faces[d2 - 1];
+
+      die1.classList.remove("rolling");
+      die2.classList.remove("rolling");
+
+      const total = d1 + d2;
+      let payout = 0;
+
+      // SIMPLE STREET LOGIC
+      if(total === 7 || total === 11){
+        payout = 10;
+        resultEl.innerHTML = "<span class='win'>WIN +10</span>";
+      } else if(total === 2 || total === 3 || total === 12){
+        resultEl.innerHTML = "<span class='lose'>NO WIN</span>";
+      } else {
+        payout = 5;
+        resultEl.innerHTML = "<span class='win'>SMALL WIN +5</span>";
+      }
+
+      balance += payout;
+      updateBalance();
+
+      rolling = false;
+      rollBtn.disabled = false;
+    }, 900);
+  };
+
+  updateBalance();
+
+})();
+</script>
+
+</body>
+</html>
