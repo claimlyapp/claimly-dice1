@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice City Roller - Property Auction Dice Game</title>
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333; font-family: 'Segoe UI', sans-serif; height: 100vh;
+            overflow: hidden;
+        }
+        #game-container { 
+            display: grid; grid-template-columns: 1fr 400px; height: 100vh;
+            position: relative;
+        }
+        #game-area { 
+            background: radial-gradient(circle at center, #1e3c72 0%, #2a5298 100%);
+            position: relative; overflow: hidden;
+        }
+        #ui-panel { 
+            background: rgba(255,255,255,0.95); border-left: 4px solid #ffd700;
+            padding: 20px; overflow-y: auto; box-shadow: -5px 0 20px rgba(0,0,0,0.2);
+        }
+        #title { font-size: 2.2em; text-align: center; color: #ffd700; margin-bottom: 20px; font-weight: 900; }
+        .round-info { background: linear-gradient(45deg, #ff6b6b, #ffd93d); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: center; }
+        #dice-container { display: flex; justify-content: center; gap: 15px; padding: 40px; height: 300px; align-items: center; }
+        .die { width: 80px; height: 80px; background: linear-gradient(145deg, #fff, #f0f0f0); border-radius: 15px; border: 4px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: pointer; transition: all 0.2s; position: relative; }
+        .die.held { border-color: #00ff88; box-shadow: 0 0 30px #00ff88; transform: scale(1.1); }
+        .die.rolling { animation: roll 0.8s ease-in-out; }
+        @keyframes roll { 0%, 100% { transform: rotateX(0) rotateY(0) rotateZ(0); } 25% { transform: rotateX(360deg) rotateY(90deg); } 50% { transform: rotateX(720deg) rotateY(180deg); } 75% { transform: rotateX(1080deg) rotateY(270deg); } }
+        .pip { position: absolute; background: #333; border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .pip-1 { width: 16px; height: 16px; }
+        .pip-2 { width: 12px; height: 12px; }
+        #score-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+        .score-card { background: white; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer; }
+        .score-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .score-card.used { opacity: 0.6; background: #f0f0f0; }
+        .score-card.available { border: 3px solid #00ff88; }
+        .score-name { font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #666; }
+        .score-value { font-size: 24px; font-weight: 900; color: #2c3e50; }
+        #action-buttons { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        button { 
+            flex: 1; padding: 15px 20px; background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 10px; font-weight: bold; 
+            cursor: pointer; transition: all 0.3s; font-size: 16px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        #auction-panel { background: rgba(255,107,107,0.95); color: white; padding: 20px; border-radius: 15px; margin-top: 20px; display: none; }
+        .property { background: white; color: #333; padding: 15px; border-radius: 10px; margin: 10px 0; cursor: pointer; transition: all 0.2s; }
+        .property:hover { transform: scale(1.02); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .property-bid { font-weight: bold; font-size: 20px; color: #ff6b6b; }
+        #leaderboard { margin-top: 20px; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.7); margin: 5px 0; border-radius: 8px; }
+        #current-score { font-size: 36px; font-weight: 900; text-align: center; color: #ffd700; margin: 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        @media (max-width: 1200px) { #game-container { grid-template-columns: 1fr; } #ui-panel { height: 50vh; } }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-area">
+            <div id="dice-container"></div>
+            <div id="score-cards"></div>
+        </div>
+        <div id="ui-panel">
+            <h1 id="title">🎲 DICE CITY ROLLER</h1>
+            <div class="round-info">
+                <div>Round <span id="current-round">1</span>/4 | Roll <span id="current-roll">1</span>/3</div>
+                <div id="current-score">0 points</div>
+            </div>
+            
+            <div id="action-buttons">
+                <button id="roll-btn" onclick="rollDice()">🎲 ROLL DICE</button>
+                <button id="hold-btn" onclick="holdDice()" disabled>✅ HOLD</button>
+                <button id="score-btn" onclick="scoreRound()" disabled>💰 END ROUND</button>
+            </div>
+
+            <div id="score-display">
+                <div style="font-size: 28px; text-align: center; margin: 20px 0;">Score Cards Available</div>
+            </div>
+
+            <div id="auction-panel">
+                <h3>🏠 PROPERTY AUCTION</h3>
+                <div id="properties"></div>
+                <button onclick="endAuction()" style="width: 100%; margin-top: 15px;">Next Round →</button>
+            </div>
+
+            <div id="leaderboard">
+                <h3>🏆 LEADERBOARD</h3>
+                <div id="leaderboard-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === GAME STATE ===
+        let gameState = {
+            round: 1, roll: 1, rollsLeft: 3,
+            dice: [1,1,1,1,1],
+            heldDice: [false,false,false,false,false],
+            scoreCards: ['Ones','Twos','Threes','Fours','Fives','Sixes','ThreeKind','FourKind','FullHouse','SmStraight','LgStraight','Yacht'],
+            usedCards: [],
+            currentScore: 0, totalScore: 0,
+            players: [{name: 'YOU', score: 0}, {name: 'Player 2', score: 0}, {name: 'Player 3', score: 0}],
+            properties: []
+        };
+
+        // === INITIALIZE GAME ===
+        function initGame() {
+            createDice();
+            createScoreCards();
+            updateUI();
+            generateProperties();
+            updateLeaderboard();
+        }
+
+        function createDice() {
+            const container = document.getElementById('dice-container');
+            container.innerHTML = '';
+            gameState.dice.forEach((value, i) => {
+                const die = document.createElement('div');
+                die.className = 'die';
+                die.dataset.index = i;
+                die.onclick = () => toggleHold(i);
+                renderDie(die, value);
+                container.appendChild(die);
+            });
+        }
+
+        function renderDie(dieEl, value) {
+            dieEl.innerHTML = '';
+            dieEl.classList.remove('held');
+            
+            // Pip positions for each face
+            const pipPositions = {
+                1: [[50,50]],
+                2: [[20,20],[80,80]],
+                3: [[20,20],[50,50],[80,80]],
+                4: [[20,20],[20,80],[80,20],[80,80]],
+                5: [[20,20],[20,80],[50,50],[80,20],[80,80]],
+                6: [[20,20],[20,50],[20,80],[80,20],[80,50],[80,80]]
+            };
+
+            pipPositions[value].forEach(([x,y]) => {
+                const pip = document.createElement('div');
+                pip.className = 'pip pip-1';
+                pip.style.left = x + '%';
+                pip.style.top = y + '%';
+                dieEl.appendChild(pip);
+            });
+
+            if(gameState.heldDice[parseInt(dieEl.dataset.index)]) {
+                dieEl.classList.add('held');
+            }
+        }
+
+        // === GAME MECHANICS ===
+        function rollDice() {
+            if(gameState.rollsLeft <= 0) return;
+            
+            gameState.rollsLeft--;
+            gameState.roll++;
+            
+            gameState.dice.forEach((value, i) => {
+                if(!gameState.heldDice[i]) {
+                    gameState.dice[i] = Math.floor(Math.random() * 6) + 1;
+                }
+            });
+
+            const diceEls = document.querySelectorAll('.die');
+            diceEls.forEach(el => el.classList.add('rolling'));
+            
+            setTimeout(() => {
+                diceEls.forEach((el, i) => {
+                    el.classList.remove('rolling');
+                    renderDie(el, gameState.dice[i]);
+                });
+                updateUI();
+                if(gameState.rollsLeft === 0) {
+                    document.getElementById('roll-btn').disabled = true;
+                    document.getElementById('score-btn').disabled = false;
+                }
+            }, 800);
+        }
+
+        function toggleHold(index) {
+            gameState.heldDice[index] = !gameState.heldDice[index];
+            renderDie(document.querySelector(`[data-index="${index}"]`), gameState.dice[index]);
+        }
+
+        function holdDice() {
+            gameState.heldDice.fill(false);
+            document.querySelectorAll('.die').forEach((die, i) => renderDie(die, gameState.dice[i]));
+        }
+
+        function calculateScore(cardType) {
+            const counts = {};
+            let score = 0;
+            
+            gameState.dice.forEach(die => {
+                counts[die] = (counts[die] || 0) + 1;
+            });
+
+            switch(cardType) {
+                case 'Ones': score = counts[1] * 1; break;
+                case 'Twos': score = counts[2] * 2; break;
+                case 'Threes': score = counts[3] * 3; break;
+                case 'Fours': score = counts[4] * 4; break;
+                case 'Fives': score = counts[5] * 5; break;
+                case 'Sixes': score = counts[6] * 6; break;
+                case 'ThreeKind': score = counts[Object.keys(counts).find(k => counts[k] >= 3)] ? gameState.dice.reduce((a,b)=>a+b) * 2 : 0; break;
+                case 'FourKind': score = counts[Object.keys(counts).find(k => counts[k] >= 4)] ? gameState.dice.reduce((a,b)=>a+b) * 3 : 0; break;
+                case 'FullHouse': score = Object.values(counts).includes(2) && Object.values(counts).includes(3) ? 25 : 0; break;
+                case 'SmStraight': score = [1,2,3,4,5].every(v => gameState.dice.includes(v)) || [2,3,4,5,6].every(v => gameState.dice.includes(v)) ? 30 : 0; break;
+                case 'LgStraight': score = [1,2,3,4,5,6].every((v,i) => gameState.dice.includes(v)) ? 40 : 0; break;
+                case 'Yacht': score = Object.values(counts).includes(5) ? 50 : 0; break;
+            }
+            
+            return score;
+        }
+
+        function scoreRound() {
+            gameState.currentScore = 0;
+            updateScoreCards();
+        }
+
+        // === AUCTION SYSTEM ===
+        function generateProperties() {
+            const properties = [
+                {name: 'Downtown Hotel', value: 15, bids: []},
+                {name: 'Beach Resort', value: 20, bids: []},
+                {name: 'Casino Tower', value: 25, bids: []},
+                {name: 'Luxury Mall', value: 18, bids: []}
+            ];
+            gameState.properties = properties;
+        }
+
+        function startAuction() {
+            document.getElementById('auction-panel').style.display = 'block';
+            updateAuction();
+        }
+
+        function updateAuction() {
+            const container = document.getElementById('properties');
+            container.innerHTML = '';
+            gameState.properties.forEach((prop, i) => {
+                const propEl = document.createElement('div');
+                propEl.className = 'property';
+                propEl.innerHTML = `
+                    <div>${prop.name}</div>
+                    <div class="property-bid">$${prop.value}</div>
+                    <div>Bids: ${prop.bids.length}</div>
+                `;
+                propEl.onclick = () => bidProperty(i);
+                container.appendChild(propEl);
+            });
+        }
+
+        function bidProperty(index) {
+            gameState.properties[index].bids.push('YOU');
+            updateAuction();
+        }
+
+        function endAuction() {
+            document.getElementById('auction-panel').style.display = 'none';
+            gameState.round++;
+            if(gameState.round > 4) {
+                endGame();
+                return;
+            }
+            resetRound();
+        }
+
+        // === UI UPDATES ===
+        function updateUI() {
+            document.getElementById('current-round').textContent = gameState.round;
+            document.getElementById('current-roll').textContent = gameState.roll;
+            document.getElementById('roll-btn').disabled = gameState.rollsLeft === 0;
+            document.getElementById('hold-btn').disabled = true;
+        }
+
+        function updateScoreCards() {
+            const container = document.getElementById('score-display');
+            container.innerHTML = '<div style="font-size: 28px; text-align: center; margin: 20px 0;">Score Cards Available</div>';
+            
+            gameState.scoreCards.forEach(card => {
+                if(!gameState.usedCards.includes(card)) {
+                    const score = calculateScore(card);
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `score-card available`;
+                    cardEl.innerHTML = `
+                        <div class="score-name">${card}</div>
+                        <div class="score-value">${score > 0 ? score : '-'}</div>
+                    `;
+                    cardEl.onclick = () => useScoreCard(card);
+                    container.appendChild(cardEl);
+                }
+            });
+        }
+
+        function useScoreCard(card) {
+            const score = calculateScore(card);
+            gameState.currentScore += score;
+            gameState.usedCards.push(card);
+            gameState.totalScore += score;
+            document.getElementById('current-score').textContent = gameState.totalScore + ' points';
+            updateScoreCards();
+            
+            if(gameState.usedCards.length >= 12) {
+                startAuction();
+            }
+        }
+
+        function resetRound() {
+            gameState.roll = 1;
+            gameState.rollsLeft = 3;
+            gameState.dice = [1,1,1,1,1];
+            gameState.heldDice = [false,false,false,false,false];
+            createDice();
+            updateUI();
+            updateScoreCards();
+        }
+
+        function updateLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            gameState.players.sort((a,b) => b.score - a.score);
+            list.innerHTML = gameState.players.map(p => 
+                `<div class="leaderboard-item">
+                    <span>${p.name}</span>
+                    <span>${p.score} pts</span>
+                </div>`
+            ).join('');
+        }
+
+        function endGame() {
+            alert(`🎉 GAME COMPLETE!\nYour Final Score: ${gameState.totalScore} points\nCheck Leaderboard!`);
+        }
+
+        // === START GAME ===
+        initGame();
+    </script>
+</body>
+</html>
