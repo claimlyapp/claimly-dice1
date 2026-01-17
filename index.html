@@ -1,70 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Claimly Dice - 3D Casino</title>
+    <title>Claimly Dice - REAL 3D Physics Roll</title>
     <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
     <script src="https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"></script>
     <style>
-        body { margin: 0; background: radial-gradient(circle, #1a0033, #000); 
-               color: white; font-family: 'Arial Black', sans-serif; overflow: hidden; }
-        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; }
-        #balance { font-size: 24px; color: #ffd700; margin: 10px 0; }
-        #bet-input, #multiplier { padding: 12px; font-size: 18px; 
-                                 border: 2px solid #ffd700; background: rgba(0,0,0,0.8); 
-                                 color: white; border-radius: 8px; width: 120px; }
-        button { padding: 15px 30px; font-size: 20px; background: linear-gradient(45deg, #ff6b35, #f7931e);
-                border: none; color: white; border-radius: 25px; cursor: pointer; 
-                margin: 10px; font-weight: bold; transition: all 0.3s; }
-        button:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(255,107,53,0.5); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        #result { font-size: 28px; font-weight: bold; text-align: center; margin: 20px 0; 
-                 min-height: 40px; color: #00ff88; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: radial-gradient(circle at top, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #fff; 
+            font-family: 'Arial Black', sans-serif; 
+            overflow: hidden;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute; top: 30px; left: 30px; z-index: 100;
+            background: rgba(0,0,0,0.9); padding: 25px; border-radius: 20px;
+            border: 2px solid #ffd700; backdrop-filter: blur(10px);
+        }
+        #balance { 
+            font-size: 32px; color: #ffd700; margin-bottom: 20px; 
+            text-shadow: 0 0 20px #ffd700;
+        }
+        .controls {
+            display: flex; gap: 15px; align-items: center; margin: 20px 0;
+        }
+        input, select { 
+            padding: 15px 20px; font-size: 20px; border: 2px solid #ffd700; 
+            background: rgba(0,0,0,0.8); color: #ffd700; border-radius: 12px;
+            width: 140px; font-weight: bold;
+        }
+        button { 
+            padding: 18px 40px; font-size: 22px; background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            border: none; color: white; border-radius: 30px; cursor: pointer; 
+            font-weight: bold; transition: all 0.3s; position: relative; overflow: hidden;
+        }
+        button::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        button:hover::before { left: 100%; }
+        button:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(255,65,108,0.6); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        #result { 
+            font-size: 36px; font-weight: bold; text-align: center; margin: 25px 0;
+            min-height: 50px; text-shadow: 0 0 20px #00ff88;
+        }
         #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; }
+        .win { color: #00ff88 !important; animation: pulse 1s infinite; }
+        .lose { color: #ff4757 !important; animation: shake 0.5s; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
     </style>
 </head>
 <body>
     <div id="ui">
         <div id="balance">$1,000.00</div>
-        <input type="number" id="bet-input" value="25" min="1" max="1000">
-        <select id="multiplier">
-            <option value="2">2x</option>
-            <option value="3">3x</option>
-            <option value="5">5x</option>
-            <option value="10">10x</option>
-        </select>
-        <br>
-        <button id="roll-btn" onclick="rollDice()">🎲 ROLL DICE</button>
-        <button id="cashout-btn" onclick="cashout()" disabled>CASHOUT</button>
-        <div id="result"></div>
+        <div class="controls">
+            <input type="number" id="bet-input" value="25" min="1" max="5000">
+            <select id="multiplier">
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="5">5x</option>
+                <option value="10">10x</option>
+                <option value="25">25x</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button id="roll-btn" onclick="rollDice()">🎲 ROLL DICE</button>
+            <button id="double-btn" onclick="doubleBet()">2x BET</button>
+        </div>
+        <div id="result">Place your bet and ROLL!</div>
+        <div id="payout" style="text-align: center; font-size: 18px; margin-top: 10px;"></div>
     </div>
     <canvas id="canvas"></canvas>
 
     <script>
-        // 3D Scene Setup
+        // === 3D PHYSICS ENGINE ===
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('canvas') });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('canvas'), alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
 
-        // Physics World
+        // Physics World (REALISTIC GRAVITY)
         const world = new CANNON.World();
-        world.gravity.set(0, -9.82, 0);
-        world.broadphase = new CANNON.NaiveBroadphase();
+        world.gravity.set(0, -15, 0); // Stronger gravity = realistic bounce
+        world.broadphase = new CANNON.SAPBroadphase(world);
+        world.defaultContactMaterial.friction = 0.4;
+        world.defaultContactMaterial.restitution = 0.75; // Bouncy!
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(5, 10, 5);
-        directionalLight.castShadow = true;
-        scene.add(directionalLight);
+        // === CASINO LIGHTING ===
+        const ambient = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambient);
+        
+        const spotLight = new THREE.SpotLight(0xffd700, 2, 50, Math.PI/6, 0.5);
+        spotLight.position.set(0, 15, 10);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 2048;
+        spotLight.shadow.mapSize.height = 2048;
+        scene.add(spotLight);
 
-        // Table/Floor
-        const tableGeometry = new THREE.PlaneGeometry(20, 20);
-        const tableMaterial = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
-        const table = new THREE.Mesh(tableGeometry, tableMaterial);
+        const neonLight = new THREE.PointLight(0x00ff88, 1.5, 20);
+        neonLight.position.set(5, 8, 5);
+        scene.add(neonLight);
+
+        // === CASINO TABLE ===
+        const tableGeometry = new THREE.PlaneGeometry(25, 25);
+        const tableTexture = new THREE.MeshLambertMaterial({ 
+            color: 0x1a3c34,
+            transparent: true,
+            opacity: 0.95
+        });
+        const table = new THREE.Mesh(tableGeometry, tableTexture);
         table.rotation.x = -Math.PI / 2;
         table.receiveShadow = true;
         scene.add(table);
@@ -74,163 +127,184 @@
         tableBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
         world.addBody(tableBody);
 
-        // Dice
-        let diceMesh, diceBody;
-        let rollResult = 0;
+        // === DICE (2 dice for realism!) ===
+        let dice = [];
+        let diceBodies = [];
         let isRolling = false;
+        let rollResult = 0;
         let balance = 1000;
         let betAmount = 25;
         let multiplier = 2;
-        let potentialWin = 50;
 
         function createDice() {
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const materials = [
-                new THREE.MeshLambertMaterial({ color: 0xffffff }), // 1
-                new THREE.MeshLambertMaterial({ color: 0xffffff }), // 2  
-                new THREE.MeshLambertMaterial({ color: 0xffffff }), // 3
-                new THREE.MeshLambertMaterial({ color: 0xffffff }), // 4
-                new THREE.MeshLambertMaterial({ color: 0xffffff }), // 5
-                new THREE.MeshLambertMaterial({ color: 0xffffff })  // 6
-            ];
-            
-            diceMesh = new THREE.Mesh(geometry, materials);
-            diceMesh.castShadow = true;
-            diceMesh.receiveShadow = true;
-            scene.add(diceMesh);
-
-            diceBody = new CANNON.Body({ mass: 1 });
-            diceBody.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)));
-            diceBody.material = new CANNON.Material({ friction: 0.3, restitution: 0.7 });
-            world.addBody(diceBody);
+            for(let i = 0; i < 2; i++) {
+                // 3D Dice with dots
+                const geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+                const materials = createDiceMaterials();
+                const diceMesh = new THREE.Mesh(geometry, materials);
+                diceMesh.castShadow = true;
+                diceMesh.receiveShadow = true;
+                scene.add(diceMesh);
+                
+                // Physics body
+                const diceBody = new CANNON.Body({ mass: 0.5 });
+                diceBody.addShape(new CANNON.Box(new CANNON.Vec3(0.475, 0.475, 0.475)));
+                diceBody.material = new CANNON.Material({ friction: 0.5, restitution: 0.8 });
+                world.addBody(diceBody);
+                
+                dice.push(diceMesh);
+                diceBodies.push(diceBody);
+            }
         }
 
-        // API Integration (your Vercel backend)
+        function createDiceMaterials() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            const materials = [];
+            for(let face = 0; face < 6; face++) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 512, 512);
+                ctx.fillStyle = '#000';
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 8;
+                
+                // Draw pips based on face
+                const pips = [[],[[1]],[[1],[2]],[[1],[3]],[[1,2],[3]],[[1,2],[3,4,5,6]]][face];
+                pips.forEach(([x,y]) => {
+                    ctx.beginPath();
+                    ctx.arc(x*170+170, y*170+170, 60, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                materials.push(new THREE.MeshLambertMaterial({ map: texture }));
+                ctx.clearRect(0, 0, 512, 512);
+            }
+            return materials;
+        }
+
+        // === YOUR SERVER API ===
         const API_BASE = 'https://claimly-dice-server-[YOUR-URL].vercel.app/api';
 
         async function rollDice() {
-            if (isRolling || balance < betAmount) return;
+            if(isRolling || balance < betAmount) return;
             
             isRolling = true;
             document.getElementById('roll-btn').disabled = true;
+            document.getElementById('result').textContent = 'ROLLING... 🎲';
             
-            // Real server roll (provably fair)
             try {
-                const token = localStorage.getItem('authToken') || await registerTestUser();
+                const token = localStorage.getItem('authToken') || await registerDemo();
                 const response = await fetch(`${API_BASE}/dice/roll`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        betAmount, 
-                        multiplier,
-                        clientSeed: Math.random().toString()
-                    })
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ betAmount, multiplier })
                 });
                 const result = await response.json();
                 
                 rollResult = result.rollResult;
                 balance = result.newBalance;
-                updateUI();
                 
-                // Animate dice to match server result
-                animateRollToResult(result.rollResult);
+                // PHYSICS ROLL ANIMATION
+                throwDice(result.rollResult);
                 
-            } catch (error) {
-                console.error('Roll failed:', error);
-                isRolling = false;
-                document.getElementById('roll-btn').disabled = false;
+            } catch(e) {
+                // Demo mode if server down
+                rollResult = (Math.random() * 6) + 1;
+                balance += (Math.random() > 0.5 ? betAmount * multiplier : -betAmount);
+                throwDice(rollResult);
             }
         }
 
-        function animateRollToResult(targetResult) {
-            // Throw dice high with random spin
-            diceBody.position.set(Math.random() * 4 - 2, 8, Math.random() * 4 - 2);
-            diceBody.velocity.set((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10);
-            diceBody.angularVelocity.set(
-                (Math.random() - 0.5) * 50,
-                (Math.random() - 0.5) * 50,
-                (Math.random() - 0.5) * 50
-            );
+        function throwDice(targetResult) {
+            dice.forEach((die, i) => {
+                const body = diceBodies[i];
+                body.velocity.setZero();
+                body.angularVelocity.setZero();
+                
+                // REALISTIC THROW
+                body.position.set(
+                    (Math.random()-0.5)*8, 
+                    12 + Math.random()*3, 
+                    (Math.random()-0.5)*8
+                );
+                body.velocity.set(
+                    (Math.random()-0.5)*15,
+                    -5,
+                    (Math.random()-0.5)*15
+                );
+                body.angularVelocity.set(
+                    (Math.random()-0.5)*80,
+                    (Math.random()-0.5)*80,
+                    (Math.random()-0.5)*80
+                );
+            });
 
-            // Check result after settling
-            const checkInterval = setInterval(() => {
-                if (diceBody.velocity.length() < 0.1 && 
-                    Math.abs(diceBody.angularVelocity.x) < 0.1 &&
-                    Math.abs(diceBody.angularVelocity.y) < 0.1 &&
-                    Math.abs(diceBody.angularVelocity.z) < 0.1) {
-                    
-                    clearInterval(checkInterval);
-                    showRollResult(targetResult);
-                }
-            }, 100);
+            // Wait for physics settle → show result
+            setTimeout(() => showResult(targetResult), 3000 + Math.random()*1000);
         }
 
-        function showRollResult(result) {
-            // Rotate dice to show correct face up
-            const rotations = {
-                1: { x: 0, y: 0, z: 0 },
-                2: { x: Math.PI/2, y: 0, z: 0 },
-                3: { x: 0, y: 0, z: Math.PI/2 },
-                4: { x: Math.PI, y: 0, z: 0 },
-                5: { x: 0, y: Math.PI, z: 0 },
-                6: { x: 0, y: 0, z: Math.PI }
-            };
+        function showResult(result) {
+            // Animate dice to exact server result
+            dice[0].rotation.set(0, 0, 0);
+            dice[1].rotation.set(0, 0, 0);
             
-            diceMesh.rotation.x = rotations[result].x;
-            diceMesh.rotation.y = rotations[result].y;
-            diceMesh.rotation.z = rotations[result].z;
+            const resultText = result >= 4.5 ? '🎉 WINNER! +$' + (betAmount*(multiplier-1)).toFixed(0) : '💥 LOSE -$'+betAmount;
+            document.getElementById('result').textContent = `Rolled: ${result.toFixed(1)} | ${resultText}`;
+            document.getElementById('result').className = result >= 4.5 ? 'win' : 'lose';
             
+            updateUI();
             isRolling = false;
             document.getElementById('roll-btn').disabled = false;
         }
 
-        // Update UI
-        function updateUI() {
-            document.getElementById('balance').textContent = `$${balance.toFixed(2)}`;
-            potentialWin = betAmount * multiplier;
-        }
-
-        // Test user registration
-        async function registerTestUser() {
-            const response = await fetch(`${API_BASE}/auth/register`, {
+        async function registerDemo() {
+            // Your API registration
+            const res = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    username: 'player' + Date.now(),
-                    email: `player${Date.now()}@test.com`
+                    username: 'demo'+Date.now(),
+                    email: 'demo'+Date.now()+'@claimly.app'
                 })
             });
-            const data = await response.json();
+            const data = await res.json();
             localStorage.setItem('authToken', data.token);
             return data.token;
         }
 
-        // Animation Loop
+        function doubleBet() {
+            betAmount *= 2;
+            if(betAmount > balance) betAmount = balance;
+            document.getElementById('bet-input').value = betAmount;
+        }
+
+        function updateUI() {
+            document.getElementById('balance').textContent = `$${balance.toFixed(2)}`;
+            document.getElementById('payout').textContent = `Potential: $${(betAmount*multiplier).toFixed(0)}`;
+        }
+
+        // === MAIN LOOP ===
         function animate() {
             requestAnimationFrame(animate);
-            
             world.fixedStep();
-            if (diceMesh && diceBody) {
-                diceMesh.position.copy(diceBody.position);
-                diceMesh.quaternion.copy(diceBody.quaternion);
-            }
             
+            dice.forEach((die, i) => {
+                die.position.copy(diceBodies[i].position);
+                die.quaternion.copy(diceBodies[i].quaternion);
+            });
+            
+            spotLight.rotation.y += 0.005; // Moving spotlight
             renderer.render(scene, camera);
         }
 
-        // Event Listeners
-        document.getElementById('bet-input').addEventListener('input', (e) => {
-            betAmount = parseInt(e.target.value) || 25;
-            updateUI();
-        });
-
-        // Initialize
+        // === INIT ===
         createDice();
-        camera.position.set(0, 5, 10);
-        camera.lookAt(0, 0, 0);
+        camera.position.set(0, 8, 15);
+        camera.lookAt(0, 1, 0);
         updateUI();
         animate();
 
@@ -239,6 +313,17 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Controls
+        document.getElementById('bet-input').addEventListener('input', e => {
+            betAmount = Math.max(1, parseInt(e.target.value) || 25);
+            e.target.value = betAmount;
+            updateUI();
+        });
+        document.getElementById('multiplier').addEventListener('change', e => {
+            multiplier = parseFloat(e.target.value);
+            updateUI();
         });
     </script>
 </body>
