@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Claimly Casino Lobby</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#0b1b2e,#020409);
+  font-family:Inter,Arial,sans-serif;
+  color:#eafcff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.app{
+  width:390px;
+  background:rgba(8,20,40,.95);
+  border-radius:26px;
+  box-shadow:0 0 40px rgba(0,246,255,.25);
+  overflow:hidden;
+}
+.header{
+  padding:18px;
+  background:linear-gradient(135deg,#02182f,#042b55);
+}
+.header h1{
+  margin:0;
+  font-size:18px;
+}
+.stats{
+  display:flex;
+  justify-content:space-between;
+  margin-top:8px;
+  font-size:12px;
+  color:#9fdfff;
+}
+.stats span{
+  display:block;
+  font-size:15px;
+  font-weight:700;
+  color:#00ff88;
+}
+
+.section{
+  padding:20px;
+}
+.section-title{
+  font-size:13px;
+  color:#9fdfff;
+  margin-bottom:12px;
+}
+
+.games{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+}
+
+.card{
+  background:linear-gradient(145deg,#0b3355,#021829);
+  border-radius:18px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow:inset 0 0 18px rgba(0,246,255,.35);
+  cursor:pointer;
+  transition:.2s;
+}
+.card:hover{
+  box-shadow:0 0 26px rgba(0,246,255,.55);
+}
+.card .left{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.icon{
+  font-size:34px;
+}
+.card h3{
+  margin:0;
+  font-size:16px;
+}
+.card p{
+  margin:2px 0 0;
+  font-size:12px;
+  color:#9fdfff;
+}
+.play{
+  font-size:12px;
+  font-weight:700;
+  color:#00ff88;
+}
+
+.vip-banner{
+  margin-top:18px;
+  background:linear-gradient(135deg,#ffd700,#ff9f00);
+  color:#000;
+  border-radius:16px;
+  padding:14px;
+  text-align:center;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.footer{
+  padding:14px;
+  text-align:center;
+  font-size:11px;
+  color:#7fbccc;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🎰 Claimly Casino</h1>
+    <div class="stats">
+      <div>Credits<span id="credits">100</span></div>
+      <div>Wins<span>—</span></div>
+      <div>Status<span id="status">FREE</span></div>
+    </div>
+  </div>
+
+  <!-- GAMES -->
+  <div class="section">
+    <div class="section-title">Games</div>
+
+    <div class="games">
+
+      <div class="card" onclick="go('index.html')">
+        <div class="left">
+          <div class="icon">🎲</div>
+          <div>
+            <h3>Dice</h3>
+            <p>Street & Crypto Dice</p>
+          </div>
+        </div>
+        <div class="play">PLAY ▶</div>
+      </div>
+
+      <div class="card" onclick="go('claimly-slots.html')">
+        <div class="left">
+          <div class="icon">🎰</div>
+          <div>
+            <h3>Slots</h3>
+            <p>Spin for bonuses</p>
+          </div>
+        </div>
+        <div class="play">PLAY ▶</div>
+      </div>
+
+      <div class="card" onclick="alert('Wheel coming soon')">
+        <div class="left">
+          <div class="icon">🎡</div>
+          <div>
+            <h3>Wheel</h3>
+            <p>Daily free spin</p>
+          </div>
+        </div>
+        <div class="play">SOON</div>
+      </div>
+
+    </div>
+
+    <div class="vip-banner" onclick="upgradeVIP()">
+      👑 Unlock VIP • Boosted wins & rewards
+    </div>
+  </div>
+
+  <div class="footer">
+    Credits only • Rewards platform
+  </div>
+
+</div>
+
+<script>
+(() => {
+
+  // future: pull from backend / localStorage
+  let credits = 100;
+  let vip = false;
+
+  function update(){
+    document.getElementById('credits').textContent = credits;
+    document.getElementById('status').textContent = vip ? 'VIP' : 'FREE';
+  }
+
+  window.go = (page) => {
+    window.location.href = page;
+  };
+
+  window.upgradeVIP = () => {
+    alert('VIP upgrade flow (C-Wallet) – demo');
+    vip = true;
+    update();
+  };
+
+  update();
+
+})();
+</script>
+
+</body>
+</html>
