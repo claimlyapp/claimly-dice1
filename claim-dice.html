@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <title>Claimly Street Dice</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{
   margin:0;
-  background:
-    radial-gradient(circle at top,#122b45,#020409),
-    repeating-linear-gradient(45deg,rgba(255,255,255,.02),rgba(255,255,255,.02) 2px,transparent 2px,transparent 6px);
+  background:radial-gradient(circle at top,#0c2238,#020409);
   font-family:Inter,Arial,sans-serif;
   color:#eafcff;
   display:flex;
@@ -17,78 +16,79 @@ body{
   align-items:center;
   min-height:100vh;
 }
+
 .app{
   width:390px;
-  background:rgba(6,16,32,.96);
-  border-radius:28px;
+  background:#041626;
+  border-radius:26px;
   box-shadow:0 0 60px rgba(0,255,255,.25);
-  overflow:hidden;
-}
-.header{
-  padding:18px;
-  background:linear-gradient(135deg,#031a33,#063d6b);
-  border-bottom:1px solid rgba(0,255,255,.2);
-}
-.header h1{
-  margin:0;
-  font-size:19px;
-  letter-spacing:.5px;
-}
-.balance{
-  font-size:13px;
-  color:#9fdfff;
-}
-.balance span{
-  color:#00ff88;
-  font-weight:700;
 }
 
+.header{
+  padding:16px;
+  background:linear-gradient(135deg,#031a33,#063d6b);
+}
+.header h1{margin:0;font-size:18px}
+.balance{font-size:13px}
+.balance span{color:#00ff88;font-weight:700}
+
 .game{
-  padding:26px 22px 30px;
+  padding:24px;
   text-align:center;
 }
 
 .table{
-  background:radial-gradient(circle at center,#08304f,#031320);
+  background:radial-gradient(circle,#0b3a5c,#031421);
   border-radius:22px;
   padding:24px;
-  box-shadow:
-    inset 0 0 30px rgba(0,255,255,.25),
-    0 0 25px rgba(0,255,255,.15);
+  box-shadow:inset 0 0 30px rgba(0,255,255,.25);
 }
 
 .dice-area{
   display:flex;
-  justify-content:center;
-  gap:28px;
-  margin:18px 0 24px;
+  justify-content:space-between;
+  gap:32px;
+  margin:24px 0;
 }
 
+/* REAL DICE */
 .die{
-  width:96px;
-  height:96px;
-  border-radius:20px;
-  background:linear-gradient(145deg,#0b3b63,#031829);
+  width:90px;
+  height:90px;
+  background:linear-gradient(145deg,#f2f2f2,#cfcfcf);
+  border-radius:18px;
   box-shadow:
-    inset 0 0 22px rgba(0,255,255,.35),
-    0 10px 25px rgba(0,0,0,.7);
-  font-size:52px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:transform .15s;
+    inset 0 0 12px rgba(0,0,0,.25),
+    0 12px 24px rgba(0,0,0,.6);
+  position:relative;
 }
+
+.pip{
+  width:14px;
+  height:14px;
+  background:#000;
+  border-radius:50%;
+  position:absolute;
+}
+
+.center{top:50%;left:50%;transform:translate(-50%,-50%)}
+.tl{top:18px;left:18px}
+.tr{top:18px;right:18px}
+.bl{bottom:18px;left:18px}
+.br{bottom:18px;right:18px}
+.ml{top:50%;left:18px;transform:translateY(-50%)}
+.mr{top:50%;right:18px;transform:translateY(-50%)}
 
 .rolling{
-  animation:diceRoll .35s linear infinite;
+  animation:shake .25s infinite;
 }
 
-@keyframes diceRoll{
-  0%{transform:rotate(0deg) translateY(0)}
-  25%{transform:rotate(90deg) translateY(-6px)}
-  50%{transform:rotate(180deg) translateY(0)}
-  75%{transform:rotate(270deg) translateY(-6px)}
-  100%{transform:rotate(360deg) translateY(0)}
+@keyframes shake{
+  0%{transform:translate(0,0) rotate(0)}
+  25%{transform:translate(-4px,4px) rotate(6deg)}
+  50%{transform:translate(4px,-4px) rotate(-6deg)}
+  75%{transform:translate(-4px,2px) rotate(4deg)}
+  100%{transform:translate(0,0) rotate(0)}
 }
 
 button{
@@ -99,144 +99,85 @@ button{
   border:none;
   border-radius:16px;
   background:linear-gradient(135deg,#00f6ff,#00ff88);
-  color:#001;
-  cursor:pointer;
-  box-shadow:0 0 25px rgba(0,255,200,.4);
-}
-button:disabled{opacity:.5}
-
-.result{
-  min-height:26px;
-  margin-top:14px;
-  font-size:15px;
-}
-.win{
-  color:#ffd700;
-  text-shadow:0 0 12px gold;
-}
-.lose{
-  color:#ff4d4d;
-}
-
-.footer{
-  margin-top:16px;
-  font-size:11px;
-  color:#7fbccc;
-}
-.back{
-  margin-top:10px;
-  font-size:12px;
-  color:#9fdfff;
   cursor:pointer;
 }
+
+.result{margin-top:12px;min-height:22px}
+.win{color:gold}
+.lose{color:#ff4d4d}
 </style>
 </head>
-<body>
 
+<body>
 <div class="app">
   <div class="header">
     <h1>🎲 Claimly Street Dice</h1>
-    <div class="balance">Credits: <span id="balance">100</span></div>
+    <div class="balance">Credits: <span id="bal">100</span></div>
   </div>
 
   <div class="game">
     <div class="table">
-
       <div class="dice-area">
-        <div class="die" id="die1">⚀</div>
-        <div class="die" id="die2">⚀</div>
+        <div class="die" id="die1"></div>
+        <div class="die" id="die2"></div>
       </div>
 
-      <button id="rollBtn">ROLL DICE</button>
-
-      <div class="result" id="result"></div>
-
-    </div>
-
-    <div class="back" onclick="location.href='lobby.html'">
-      ← Back to Lobby
-    </div>
-
-    <div class="footer">
-      Dice decide outcomes • Credits only
+      <button id="roll">ROLL DICE</button>
+      <div class="result" id="res"></div>
     </div>
   </div>
 </div>
 
 <script>
-(() => {
+let bal=100,rolling=false;
+const balEl=balEl=document.getElementById("bal");
+const die1=document.getElementById("die1");
+const die2=document.getElementById("die2");
+const res=document.getElementById("res");
 
-  let balance = 100;
-  let rolling = false;
-
-  const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
-
-  const balEl = document.getElementById("balance");
-  const resEl = document.getElementById("result");
-  const rollBtn = document.getElementById("rollBtn");
-  const die1 = document.getElementById("die1");
-  const die2 = document.getElementById("die2");
-
-  function rngDie(){
-    return Math.floor(Math.random()*6);
-  }
-
-  function updateBal(){
-    balEl.textContent = balance;
-  }
-
-  rollBtn.onclick = () => {
-    if(rolling) return;
-    if(balance < 2){
-      resEl.innerHTML = "<span class='lose'>Not enough credits</span>";
-      return;
-    }
-
-    balance -= 2;
-    updateBal();
-
-    rolling = true;
-    rollBtn.disabled = true;
-    resEl.textContent = "Rolling…";
-
-    die1.classList.add("rolling");
-    die2.classList.add("rolling");
-
-    setTimeout(() => {
-      const d1 = rngDie();
-      const d2 = rngDie();
-
-      die1.textContent = faces[d1];
-      die2.textContent = faces[d2];
-
-      die1.classList.remove("rolling");
-      die2.classList.remove("rolling");
-
-      const total = d1 + d2 + 2;
-      let payout = 0;
-
-      if(total === 7 || total === 11){
-        payout = 10;
-        resEl.innerHTML = "<span class='win'>WIN +10</span>";
-      } else if([2,3,12].includes(total)){
-        resEl.innerHTML = "<span class='lose'>NO WIN</span>";
-      } else {
-        payout = 5;
-        resEl.innerHTML = "<span class='win'>SMALL WIN +5</span>";
-      }
-
-      balance += payout;
-      updateBal();
-
-      rolling = false;
-      rollBtn.disabled = false;
-    }, 1100);
+function drawDie(die,val){
+  die.innerHTML="";
+  const map={
+    1:["center"],
+    2:["tl","br"],
+    3:["tl","center","br"],
+    4:["tl","tr","bl","br"],
+    5:["tl","tr","center","bl","br"],
+    6:["tl","ml","bl","tr","mr","br"]
   };
+  map[val].forEach(c=>{
+    const p=document.createElement("div");
+    p.className="pip "+c;
+    die.appendChild(p);
+  });
+}
 
-  updateBal();
+document.getElementById("roll").onclick=()=>{
+  if(rolling||bal<2)return;
+  bal-=2;balEl.textContent=bal;
+  rolling=true;
+  die1.classList.add("rolling");
+  die2.classList.add("rolling");
+  res.textContent="Rolling…";
 
-})();
+  setTimeout(()=>{
+    const d1=Math.floor(Math.random()*6)+1;
+    const d2=Math.floor(Math.random()*6)+1;
+    drawDie(die1,d1);
+    drawDie(die2,d2);
+
+    die1.classList.remove("rolling");
+    die2.classList.remove("rolling");
+
+    const total=d1+d2;
+    if(total===7||total===11){bal+=10;res.innerHTML="<span class='win'>WIN +10</span>"}
+    else if([2,3,12].includes(total)){res.innerHTML="<span class='lose'>LOSE</span>"}
+    else{bal+=5;res.innerHTML="<span class='win'>WIN +5</span>"}
+
+    balEl.textContent=bal;
+    rolling=false;
+  },900);
+};
 </script>
-
 </body>
 </html>
