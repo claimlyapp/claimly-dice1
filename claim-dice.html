@@ -2,36 +2,63 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Claimly Street Dice</title>
+<title>Claimly Dice Casino</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+/* ===== RESET ===== */
+*{box-sizing:border-box}
+
+/* ===== BACKGROUND ===== */
 body{
   margin:0;
-  background:radial-gradient(circle at top,#0c2238,#020409);
-  font-family:Inter,Arial,sans-serif;
-  color:#eafcff;
+  min-height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  min-height:100vh;
+  background:
+    radial-gradient(circle at top,#0c2944,#020409),
+    repeating-linear-gradient(45deg,rgba(255,255,255,.02),rgba(255,255,255,.02) 2px,transparent 2px,transparent 6px);
+  font-family:Inter,Arial,sans-serif;
+  color:#eafcff;
 }
 
+/* ===== APP ===== */
 .app{
   width:390px;
   background:#041626;
-  border-radius:26px;
-  box-shadow:0 0 60px rgba(0,255,255,.25);
+  border-radius:28px;
+  box-shadow:0 0 70px rgba(0,255,255,.25);
+  overflow:hidden;
 }
 
+/* ===== HEADER ===== */
 .header{
-  padding:16px;
+  padding:16px 18px;
   background:linear-gradient(135deg,#031a33,#063d6b);
+  border-bottom:1px solid rgba(0,255,255,.25);
 }
-.header h1{margin:0;font-size:18px}
-.balance{font-size:13px}
-.balance span{color:#00ff88;font-weight:700}
+.header h1{
+  margin:0;
+  font-size:18px;
+  letter-spacing:.5px;
+}
+.balance{
+  margin-top:4px;
+  font-size:13px;
+}
+.balance span{
+  color:#00ff88;
+  font-weight:700;
+}
+#vipBadge{
+  margin-left:6px;
+  color:gold;
+  font-weight:800;
+  display:none;
+}
 
+/* ===== GAME ===== */
 .game{
   padding:24px;
   text-align:center;
@@ -40,29 +67,40 @@ body{
 .table{
   background:radial-gradient(circle,#0b3a5c,#031421);
   border-radius:22px;
-  padding:24px;
-  box-shadow:inset 0 0 30px rgba(0,255,255,.25);
+  padding:26px;
+  box-shadow:
+    inset 0 0 30px rgba(0,255,255,.25),
+    0 0 25px rgba(0,255,255,.15);
 }
 
+/* ===== DICE ===== */
 .dice-area{
   display:flex;
   justify-content:space-between;
   gap:32px;
-  margin:24px 0;
+  margin:26px 0;
 }
 
-/* REAL DICE */
 .die{
-  width:90px;
-  height:90px;
+  width:92px;
+  height:92px;
   background:linear-gradient(145deg,#f2f2f2,#cfcfcf);
   border-radius:18px;
+  position:relative;
   box-shadow:
     inset 0 0 12px rgba(0,0,0,.25),
-    0 12px 24px rgba(0,0,0,.6);
-  position:relative;
+    0 14px 26px rgba(0,0,0,.7);
 }
 
+/* VIP DICE */
+.vip .die{
+  background:linear-gradient(145deg,#ffd700,#b8860b);
+  box-shadow:
+    inset 0 0 14px rgba(255,215,0,.7),
+    0 0 28px rgba(255,215,0,.6);
+}
+
+/* ===== PIPS ===== */
 .pip{
   width:14px;
   height:14px;
@@ -70,7 +108,6 @@ body{
   border-radius:50%;
   position:absolute;
 }
-
 .center{top:50%;left:50%;transform:translate(-50%,-50%)}
 .tl{top:18px;left:18px}
 .tr{top:18px;right:18px}
@@ -79,10 +116,10 @@ body{
 .ml{top:50%;left:18px;transform:translateY(-50%)}
 .mr{top:50%;right:18px;transform:translateY(-50%)}
 
+/* ===== ROLL ANIMATION ===== */
 .rolling{
   animation:shake .25s infinite;
 }
-
 @keyframes shake{
   0%{transform:translate(0,0) rotate(0)}
   25%{transform:translate(-4px,4px) rotate(6deg)}
@@ -91,6 +128,7 @@ body{
   100%{transform:translate(0,0) rotate(0)}
 }
 
+/* ===== BUTTON ===== */
 button{
   width:100%;
   padding:16px;
@@ -99,42 +137,75 @@ button{
   border:none;
   border-radius:16px;
   background:linear-gradient(135deg,#00f6ff,#00ff88);
+  color:#001;
   cursor:pointer;
+  box-shadow:0 0 26px rgba(0,255,200,.45);
 }
+button:disabled{opacity:.5}
 
-.result{margin-top:12px;min-height:22px}
-.win{color:gold}
+/* ===== RESULT ===== */
+.result{
+  margin-top:14px;
+  min-height:24px;
+  font-size:15px;
+}
+.win{color:#ffd700;text-shadow:0 0 10px gold}
 .lose{color:#ff4d4d}
+
+/* ===== FOOTER ===== */
+.footer{
+  margin-top:12px;
+  font-size:11px;
+  color:#7fbccc;
+}
 </style>
 </head>
 
 <body>
+
 <div class="app">
   <div class="header">
-    <h1>🎲 Claimly Street Dice</h1>
-    <div class="balance">Credits: <span id="bal">100</span></div>
+    <h1>🎲 Claimly Dice</h1>
+    <div class="balance">
+      Credits: <span id="bal">100</span>
+      <span id="vipBadge">VIP</span>
+    </div>
   </div>
 
   <div class="game">
     <div class="table">
+
       <div class="dice-area">
         <div class="die" id="die1"></div>
         <div class="die" id="die2"></div>
       </div>
 
-      <button id="roll">ROLL DICE</button>
-      <div class="result" id="res"></div>
+      <button id="rollBtn">ROLL DICE</button>
+      <div class="result" id="result"></div>
+
+    </div>
+
+    <div class="footer">
+      Dice decide outcomes • Credits only
     </div>
   </div>
 </div>
 
 <script>
-let bal=100,rolling=false;
-const balEl=balEl=document.getElementById("bal");
-const die1=document.getElementById("die1");
-const die2=document.getElementById("die2");
-const res=document.getElementById("res");
+/* ===== STATE ===== */
+let balance = 100;
+let vip = false;
+let rolling = false;
 
+/* ===== ELEMENTS ===== */
+const balEl = document.getElementById("bal");
+const vipBadge = document.getElementById("vipBadge");
+const die1 = document.getElementById("die1");
+const die2 = document.getElementById("die2");
+const res = document.getElementById("result");
+const rollBtn = document.getElementById("rollBtn");
+
+/* ===== DRAW DIE ===== */
 function drawDie(die,val){
   die.innerHTML="";
   const map={
@@ -152,32 +223,66 @@ function drawDie(die,val){
   });
 }
 
-document.getElementById("roll").onclick=()=>{
-  if(rolling||bal<2)return;
-  bal-=2;balEl.textContent=bal;
-  rolling=true;
+/* ===== VIP CHECK ===== */
+function checkVIP(){
+  if(balance >= 250 && !vip){
+    vip = true;
+    document.body.classList.add("vip");
+    vipBadge.style.display="inline";
+    res.innerHTML="<span class='win'>VIP UNLOCKED 👑</span>";
+  }
+}
+
+/* ===== ROLL ===== */
+rollBtn.onclick = () => {
+  if(rolling || balance < 2) return;
+
+  balance -= 2;
+  balEl.textContent = balance;
+
+  rolling = true;
+  rollBtn.disabled = true;
+  res.textContent = "Rolling…";
+
   die1.classList.add("rolling");
   die2.classList.add("rolling");
-  res.textContent="Rolling…";
 
   setTimeout(()=>{
-    const d1=Math.floor(Math.random()*6)+1;
-    const d2=Math.floor(Math.random()*6)+1;
+    const d1 = Math.floor(Math.random()*6)+1;
+    const d2 = Math.floor(Math.random()*6)+1;
+
     drawDie(die1,d1);
     drawDie(die2,d2);
 
     die1.classList.remove("rolling");
     die2.classList.remove("rolling");
 
-    const total=d1+d2;
-    if(total===7||total===11){bal+=10;res.innerHTML="<span class='win'>WIN +10</span>"}
-    else if([2,3,12].includes(total)){res.innerHTML="<span class='lose'>LOSE</span>"}
-    else{bal+=5;res.innerHTML="<span class='win'>WIN +5</span>"}
+    const total = d1 + d2;
+    let payout = 0;
 
-    balEl.textContent=bal;
-    rolling=false;
-  },900);
+    if(total === 7 || total === 11){
+      payout = vip ? 14 : 10;
+      res.innerHTML = `<span class="win">WIN +${payout}</span>`;
+    } else if([2,3,12].includes(total)){
+      res.innerHTML = `<span class="lose">LOSE</span>`;
+    } else {
+      payout = vip ? 7 : 5;
+      res.innerHTML = `<span class="win">WIN +${payout}</span>`;
+    }
+
+    balance += payout;
+    balEl.textContent = balance;
+    checkVIP();
+
+    rolling = false;
+    rollBtn.disabled = false;
+  }, 950);
 };
+
+/* ===== INIT ===== */
+drawDie(die1,1);
+drawDie(die2,1);
 </script>
+
 </body>
 </html>
